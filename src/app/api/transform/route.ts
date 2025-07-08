@@ -18,9 +18,11 @@ export async function POST(req: NextRequest) {
 
     let prompt = "";
     if (type === "markdown") {
-      prompt = `Format the following text as rich markdown. Use appropriate markdown features such as headers, subheadings, bulleted or numbered lists, links, bold, italics, and blockquotes where relevant. Do not output a code block. Only output the markdown-formatted text, nothing else.\n\nText:\n${text}`;
+      prompt = `Format the following text as rich markdown. Use appropriate markdown features such as headers, subheadings, bulleted or numbered lists, links, bold, italics, and blockquotes where relevant. Do not output a code block. Only output the markdown-formatted text, nothing else.\n\nAt the end, add a new line with 3-7 relevant hashtags (all lowercase, no spaces, separated by spaces), based on the content, suitable for use in Obsidian.\n\nText:\n${text}`;
     } else if (type === "brief") {
       prompt = `Re-word the following text as a formal, concise corporate brief, as if excerpted from a quarterly financial report of a publicly traded company. Use business buzzwords and formal phrasing. Only output the reworded text.\n\nText:\n${text}`;
+    } else if (type === "gdocs") {
+      prompt = `Format the following text as HTML for Google Docs. Use appropriate HTML tags such as <h1>, <h2>, <ul>, <li>, <b>, <i>, <blockquote>, and <a> for links. Do not use markdown. Only output the HTML-formatted text, nothing else.\n\nText:\n${text}`;
     } else {
       return NextResponse.json({ error: "Invalid type." }, { status: 400 });
     }

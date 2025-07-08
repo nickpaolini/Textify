@@ -9,18 +9,22 @@ import clsx from "clsx";
 
 const PLACEHOLDER = "Enter your text here...";
 
+type OutputType = "markdown" | "brief" | "gdocs";
+
 export default function HomePage() {
   const [input, setInput] = useState("");
   const [markdown, setMarkdown] = useState<string | null>(null);
   const [brief, setBrief] = useState<string | null>(null);
-  const [loading, setLoading] = useState<"markdown" | "brief" | null>(null);
+  const [gdocs, setGdocs] = useState<string | null>(null);
+  const [loading, setLoading] = useState<OutputType | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [copied, setCopied] = useState<{ markdown: boolean; brief: boolean }>({
+  const [copied, setCopied] = useState<{ markdown: boolean; brief: boolean; gdocs: boolean }>({
     markdown: false,
     brief: false,
+    gdocs: false,
   });
 
-  const handleTransform = async (type: "markdown" | "brief") => {
+  const handleTransform = async (type: OutputType) => {
     setError(null);
     setLoading(type);
     try {
@@ -32,7 +36,8 @@ export default function HomePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Something went wrong");
       if (type === "markdown") setMarkdown(data.result);
-      else setBrief(data.result);
+      else if (type === "brief") setBrief(data.result);
+      else if (type === "gdocs") setGdocs(data.result);
     } catch (e: unknown) {
       let message = "Something went wrong";
       if (e instanceof Error) message = e.message;
@@ -42,10 +47,22 @@ export default function HomePage() {
     }
   };
 
-  const handleCopy = (type: "markdown" | "brief") => {
-    const text = type === "markdown" ? markdown : brief;
+  const handleCopy = (type: OutputType) => {
+    const text = type === "markdown" ? markdown : type === "brief" ? brief : gdocs;
     if (!text) return;
-    navigator.clipboard.writeText(text);
+    if (type === "gdocs") {
+      // Copy as rich HTML
+      if (navigator.clipboard && window.ClipboardItem) {
+        const blob = new Blob([text], { type: "text/html" });
+        const data = [new window.ClipboardItem({ "text/html": blob })];
+        navigator.clipboard.write(data);
+      } else {
+        // fallback: copy as plain text
+        navigator.clipboard.writeText(text);
+      }
+    } else {
+      navigator.clipboard.writeText(text);
+    }
     setCopied((prev) => ({ ...prev, [type]: true }));
     setTimeout(() => setCopied((prev) => ({ ...prev, [type]: false })), 1500);
   };
@@ -101,11 +118,26 @@ export default function HomePage() {
             "Re-word (Corporate Brief)"
           )}
         </Button>
+        <Button
+          variant="outline"
+          onClick={() => handleTransform("gdocs")}
+          disabled={!input.trim() || loading !== null}
+          aria-label="Format for Google Docs"
+        >
+          {loading === "gdocs" ? (
+            <>
+              <Loader2 className="animate-spin mr-2 h-4 w-4" />
+              Formatting...
+            </>
+          ) : (
+            "Format for Google Docs"
+          )}
+        </Button>
       </div>
       {error && (
         <div className="mb-4 text-red-500 text-sm text-center">{error}</div>
       )}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <div className="flex items-center justify-between mb-2">
             <h2 className="font-semibold text-lg">Markdown Code</h2>
@@ -155,6 +187,37 @@ export default function HomePage() {
           <div className="bg-muted rounded p-3 min-h-[120px]">
             {brief ? (
               <span className="whitespace-pre-wrap text-sm">{brief}</span>
+            ) : (
+              <span className="text-muted-foreground">
+                Output will appear here.
+              </span>
+            )}
+          </div>
+        </Card>
+        <Card>
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="font-semibold text-lg">Google Docs</h2>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => handleCopy("gdocs")}
+              disabled={!gdocs}
+              aria-label="Copy Google Docs Output"
+            >
+              <Copy
+                className={clsx(
+                  "h-5 w-5",
+                  copied.gdocs ? "text-green-500" : "text-muted-foreground"
+                )}
+              />
+            </Button>
+          </div>
+          <div className="bg-muted rounded p-3 min-h-[120px]">
+            {gdocs ? (
+              <div
+                className="prose prose-sm max-w-none bg-white/80 dark:bg-black/40 rounded p-2 border border-border"
+                dangerouslySetInnerHTML={{ __html: gdocs }}
+              />
             ) : (
               <span className="text-muted-foreground">
                 Output will appear here.
