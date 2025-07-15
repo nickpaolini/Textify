@@ -1,13 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Copy, Loader2, Trash2 } from "lucide-react";
+import { Copy, Loader2, Trash2, ArrowLeftRight, Download } from "lucide-react";
 import clsx from "clsx";
+import { saveTransformation } from "@/lib/history";
+import FileUpload from "@/components/FileUpload";
+import { FileProcessingResult } from "@/lib/fileUtils";
+import { StreamingTransformer } from "@/lib/streaming";
+import SmartControls from "@/components/SmartControls";
+import { SmartControlsConfig } from "@/lib/streaming";
+import ComparisonView from "@/components/ComparisonView";
+import { exportByType, sanitizeFilename } from "@/lib/export";
 
 const PLACEHOLDER = "Enter your text here...";
 
@@ -39,30 +47,116 @@ export default function HomePage() {
     brief: false,
     gdocs: false,
   });
+  const [currentFileName, setCurrentFileName] = useState<string | null>(null);
+  const [streamingContent, setStreamingContent] = useState<{ [k in OutputType]: string }>({
+    markdown: '',
+    brief: '',
+    gdocs: '',
+  });
+  const [isStreaming, setIsStreaming] = useState<OutputType | null>(null);
+  const streamingTransformersRef = useRef<{ [k in OutputType]?: StreamingTransformer }>({});
+  const scrollAreaRefs = useRef<{ [k in OutputType]?: HTMLDivElement }>({});
+  const [smartControls, setSmartControls] = useState<SmartControlsConfig>({
+    tone: 50,
+    length: 'standard',
+    customPrompt: '',
+    useCustomPrompt: false
+  });
+  const [showComparison, setShowComparison] = useState(false);
+  const [comparisonData, setComparisonData] = useState<{
+    original: string;
+    transformed: string;
+    type: OutputType;
+  } | null>(null);
 
-  const handleTransform = async (type: OutputType) => {
+  // Auto-scroll to bottom during streaming
+  useEffect(() => {
+    if (isStreaming) {
+      const scrollArea = scrollAreaRefs.current[isStreaming];
+      if (scrollArea) {
+        scrollArea.scrollTop = scrollArea.scrollHeight;
+      }
+    }
+  }, [streamingContent, isStreaming]);
+
+  const handleTransform = useCallback(async (type: OutputType) => {
     setError(null);
     setLoading(type);
+    setIsStreaming(type);
+    
+    // Clear previous streaming content
+    setStreamingContent(prev => ({ ...prev, [type]: '' }));
+    
+    // Clear existing result for this type
+    if (type === "markdown") setMarkdown(null);
+    else if (type === "brief") setBrief(null);
+    else if (type === "gdocs") setGdocs(null);
+    
+    // Abort any existing streaming for this type
+    if (streamingTransformersRef.current[type]) {
+      streamingTransformersRef.current[type]!.abort();
+    }
+    
+    // Create new streaming transformer
+    const transformer = new StreamingTransformer();
+    streamingTransformersRef.current[type] = transformer;
+    
     try {
-      const res = await fetch("/api/transform", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: input, type }),
+      await transformer.transform(input, type, smartControls, {
+        onChunk: (chunk) => {
+          setStreamingContent(prev => ({ ...prev, [type]: prev[type] + chunk }));
+        },
+        onComplete: (fullContent) => {
+          // Set final result in the appropriate state
+          if (type === "markdown") setMarkdown(fullContent);
+          else if (type === "brief") setBrief(fullContent);
+          else if (type === "gdocs") setGdocs(fullContent);
+          
+          // Clear streaming content
+          setStreamingContent(prev => ({ ...prev, [type]: '' }));
+          setShowMore((prev) => ({ ...prev, [type]: false }));
+          
+          // Set comparison data
+          setComparisonData({
+            original: input,
+            transformed: fullContent,
+            type: type
+          });
+          
+          // Save to history
+          saveTransformation({
+            inputText: input,
+            outputText: fullContent,
+            transformationType: type,
+            title: currentFileName || undefined,
+          });
+          
+          setIsStreaming(null);
+          setLoading(null);
+          
+          // Clean up transformer reference
+          delete streamingTransformersRef.current[type];
+        },
+        onError: (errorMessage) => {
+          setError(errorMessage);
+          setIsStreaming(null);
+          setLoading(null);
+          
+          // Clean up transformer reference
+          delete streamingTransformersRef.current[type];
+        }
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Something went wrong");
-      if (type === "markdown") setMarkdown(data.result);
-      else if (type === "brief") setBrief(data.result);
-      else if (type === "gdocs") setGdocs(data.result);
-      setShowMore((prev) => ({ ...prev, [type]: false }));
     } catch (e: unknown) {
       let message = "Something went wrong";
       if (e instanceof Error) message = e.message;
       setError(message);
-    } finally {
+      setIsStreaming(null);
       setLoading(null);
+      
+      // Clean up transformer reference
+      delete streamingTransformersRef.current[type];
     }
-  };
+  }, [input, currentFileName, smartControls]);
 
   const handleCopy = (type: OutputType) => {
     const text = type === "markdown" ? markdown : type === "brief" ? brief : gdocs;
@@ -82,13 +176,49 @@ export default function HomePage() {
     setTimeout(() => setCopied((prev) => ({ ...prev, [type]: false })), 1500);
   };
 
+  const handleExport = (type: OutputType) => {
+    const text = type === "markdown" ? markdown : type === "brief" ? brief : gdocs;
+    if (!text) return;
+    
+    const filename = currentFileName 
+      ? sanitizeFilename(currentFileName.replace(/\.[^/.]+$/, "")) // Remove existing extension
+      : undefined;
+      
+    exportByType(text, type, { filename });
+  };
+
   const handleClearAll = () => {
+    // Abort any ongoing streaming
+    Object.values(streamingTransformersRef.current).forEach(transformer => {
+      transformer?.abort();
+    });
+    streamingTransformersRef.current = {};
+    
     setInput("");
     setMarkdown(null);
     setBrief(null);
     setGdocs(null);
     setError(null);
+    setCurrentFileName(null);
+    setIsStreaming(null);
+    setLoading(null);
+    setStreamingContent({ markdown: '', brief: '', gdocs: '' });
     setShowMore({ markdown: false, brief: false, gdocs: false });
+  };
+
+  const handleFileProcessed = (result: FileProcessingResult) => {
+    if (result.success && result.text.trim()) {
+      setInput(result.text);
+      setCurrentFileName(result.filename);
+      setError(null);
+      // Clear any existing outputs
+      setMarkdown(null);
+      setBrief(null);
+      setGdocs(null);
+      setShowMore({ markdown: false, brief: false, gdocs: false });
+    } else if (result.error) {
+      setError(result.error);
+    }
   };
 
   // Helper for show more/collapse
@@ -96,6 +226,29 @@ export default function HomePage() {
     if (!content) return null;
     if (content.length <= SHOW_MORE_LIMIT || showMore[type]) return content;
     return content.slice(0, SHOW_MORE_LIMIT) + "...";
+  };
+
+  // Helper to get current content (streaming or final)
+  const getCurrentContent = (type: OutputType) => {
+    if (isStreaming === type && streamingContent[type]) {
+      return streamingContent[type];
+    }
+    
+    switch (type) {
+      case 'markdown':
+        return markdown;
+      case 'brief':
+        return brief;
+      case 'gdocs':
+        return gdocs;
+      default:
+        return null;
+    }
+  };
+
+  // Helper to check if content should show cursor
+  const shouldShowCursor = (type: OutputType) => {
+    return isStreaming === type && streamingContent[type];
   };
 
   // Transformation controls: dropdown if >3, else buttons
@@ -162,6 +315,20 @@ export default function HomePage() {
       <p className="text-lg text-muted-foreground mb-8 text-center">
         Instantly transform your text with AI-powered tools.
       </p>
+      
+      <FileUpload 
+        onFileProcessed={handleFileProcessed}
+        disabled={loading !== null}
+        className="mb-6"
+      />
+      
+      <SmartControls
+        config={smartControls}
+        onChange={setSmartControls}
+        disabled={loading !== null}
+        className="mb-6"
+      />
+      
       <div className="flex items-center justify-between mb-2">
         <label htmlFor="input" className="block font-medium">
           Your Text
@@ -179,7 +346,11 @@ export default function HomePage() {
       <Textarea
         id="input"
         value={input}
-        onChange={(e) => setInput(e.target.value)}
+        onChange={(e) => {
+          setInput(e.target.value);
+          // Clear filename when manually editing text
+          if (currentFileName) setCurrentFileName(null);
+        }}
         placeholder={PLACEHOLDER}
         rows={7}
         aria-label="Input text area"
@@ -232,6 +403,16 @@ export default function HomePage() {
                     )}
                   />
                 </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleExport("markdown")}
+                  disabled={!markdown}
+                  aria-label="Export Markdown File"
+                  title="Export Markdown File"
+                >
+                  <Download className="h-5 w-5 text-muted-foreground" />
+                </Button>
                 {markdown && markdown.length > SHOW_MORE_LIMIT && (
                   <Button
                     variant="ghost"
@@ -248,13 +429,25 @@ export default function HomePage() {
             <div className="mx-4 mb-4">
               <ScrollArea className="h-[300px] w-full bg-muted rounded">
                 <div className="p-3">
-                {markdown ? (
-                  <pre className="whitespace-pre-wrap text-sm pr-4">{getOutputContent("markdown", markdown)}</pre>
-                ) : (
-                  <span className="text-muted-foreground">
-                    Output will appear here.
-                  </span>
-                )}
+                {(() => {
+                  const content = getCurrentContent("markdown");
+                  const showCursor = shouldShowCursor("markdown");
+                  
+                  if (content) {
+                    return (
+                      <pre className="whitespace-pre-wrap text-sm pr-4">
+                        {getOutputContent("markdown", content)}
+                        {showCursor && <span className="animate-pulse">|</span>}
+                      </pre>
+                    );
+                  }
+                  
+                  return (
+                    <span className="text-muted-foreground">
+                      Output will appear here.
+                    </span>
+                  );
+                })()}
                 </div>
               </ScrollArea>
             </div>
@@ -281,6 +474,16 @@ export default function HomePage() {
                     )}
                   />
                 </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleExport("brief")}
+                  disabled={!brief}
+                  aria-label="Export Brief as Text File"
+                  title="Export Brief as Text File"
+                >
+                  <Download className="h-5 w-5 text-muted-foreground" />
+                </Button>
                 {brief && brief.length > SHOW_MORE_LIMIT && (
                   <Button
                     variant="ghost"
@@ -297,13 +500,25 @@ export default function HomePage() {
             <div className="mx-4 mb-4">
               <ScrollArea className="h-[300px] w-full bg-muted rounded">
                 <div className="p-3">
-                {brief ? (
-                  <span className="whitespace-pre-wrap text-sm pr-4">{getOutputContent("brief", brief)}</span>
-                ) : (
-                  <span className="text-muted-foreground">
-                    Output will appear here.
-                  </span>
-                )}
+                {(() => {
+                  const content = getCurrentContent("brief");
+                  const showCursor = shouldShowCursor("brief");
+                  
+                  if (content) {
+                    return (
+                      <span className="whitespace-pre-wrap text-sm pr-4">
+                        {getOutputContent("brief", content)}
+                        {showCursor && <span className="animate-pulse">|</span>}
+                      </span>
+                    );
+                  }
+                  
+                  return (
+                    <span className="text-muted-foreground">
+                      Output will appear here.
+                    </span>
+                  );
+                })()}
                 </div>
               </ScrollArea>
             </div>
@@ -330,6 +545,16 @@ export default function HomePage() {
                     )}
                   />
                 </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => handleExport("gdocs")}
+                  disabled={!gdocs}
+                  aria-label="Export as HTML File"
+                  title="Export as HTML File"
+                >
+                  <Download className="h-5 w-5 text-muted-foreground" />
+                </Button>
                 {gdocs && gdocs.length > SHOW_MORE_LIMIT && (
                   <Button
                     variant="ghost"
@@ -346,22 +571,59 @@ export default function HomePage() {
             <div className="mx-4 mb-4">
               <ScrollArea className="h-[300px] w-full bg-muted rounded">
                 <div className="p-3">
-                {gdocs ? (
-                  <div
-                    className="prose prose-sm max-w-none bg-white/80 dark:bg-black/40 rounded p-2 border border-border pr-4"
-                    dangerouslySetInnerHTML={{ __html: getOutputContent("gdocs", gdocs) || "" }}
-                  />
-                ) : (
-                  <span className="text-muted-foreground">
-                    Output will appear here.
-                  </span>
-                )}
+                {(() => {
+                  const content = getCurrentContent("gdocs");
+                  const showCursor = shouldShowCursor("gdocs");
+                  
+                  if (content) {
+                    return (
+                      <div className="prose prose-sm max-w-none bg-white/80 dark:bg-black/40 rounded p-2 border border-border pr-4">
+                        <div
+                          dangerouslySetInnerHTML={{ __html: getOutputContent("gdocs", content) || "" }}
+                        />
+                        {showCursor && <span className="animate-pulse">|</span>}
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <span className="text-muted-foreground">
+                      Output will appear here.
+                    </span>
+                  );
+                })()}
                 </div>
               </ScrollArea>
             </div>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Comparison Toggle Button */}
+      {comparisonData && (
+        <div className="mt-6 text-center">
+          <Button
+            variant="outline"
+            onClick={() => setShowComparison(!showComparison)}
+            className="flex items-center gap-2"
+          >
+            <ArrowLeftRight className="h-4 w-4" />
+            {showComparison ? 'Hide' : 'Show'} Before & After Comparison
+          </Button>
+        </div>
+      )}
+
+      {/* Comparison View */}
+      {comparisonData && (
+        <ComparisonView
+          originalText={comparisonData.original}
+          transformedText={comparisonData.transformed}
+          transformType={comparisonData.type}
+          isVisible={showComparison}
+          onClose={() => setShowComparison(false)}
+          className="mt-6"
+        />
+      )}
     </section>
   );
 }
