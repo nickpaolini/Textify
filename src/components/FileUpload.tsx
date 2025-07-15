@@ -11,6 +11,8 @@ import {
   formatFileSize, 
   getFileTypeLabel
 } from "@/lib/fileUtils";
+import { LoadingSpinner } from "@/components/ui/loading";
+import { useToastActions } from "@/components/ui/toast";
 
 interface FileUploadProps {
   onFileProcessed: (result: FileProcessingResult) => void;
@@ -28,6 +30,7 @@ export default function FileUpload({ onFileProcessed, disabled = false, classNam
   const [isDragOver, setIsDragOver] = useState(false);
   const [processingFiles, setProcessingFiles] = useState<ProcessingFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { showSuccess, showError } = useToastActions();
 
   const processFile = useCallback(async (file: File) => {
     const processingFile: ProcessingFile = {
@@ -50,10 +53,13 @@ export default function FileUpload({ onFileProcessed, disabled = false, classNam
 
       if (result.success) {
         onFileProcessed(result);
+        showSuccess(`File "${file.name}" processed successfully!`);
         // Auto-remove successful files after 3 seconds
         setTimeout(() => {
           setProcessingFiles(prev => prev.filter(pf => pf.file !== file));
         }, 3000);
+      } else {
+        showError(`Failed to process "${file.name}": ${result.error}`);
       }
     } catch {
       setProcessingFiles(prev => 
@@ -73,8 +79,9 @@ export default function FileUpload({ onFileProcessed, disabled = false, classNam
             : pf
         )
       );
+      showError(`Failed to process "${file.name}"`);
     }
-  }, [onFileProcessed]);
+  }, [onFileProcessed, showSuccess, showError]);
 
   const handleFiles = useCallback((files: FileList | File[]) => {
     if (disabled) return;
@@ -208,7 +215,7 @@ export default function FileUpload({ onFileProcessed, disabled = false, classNam
                       "bg-red-100 text-red-600": pf.status === 'error'
                     }
                   )}>
-                    {pf.status === 'processing' && <File className="h-4 w-4 animate-pulse" />}
+                    {pf.status === 'processing' && <LoadingSpinner size="sm" />}
                     {pf.status === 'success' && <CheckCircle className="h-4 w-4" />}
                     {pf.status === 'error' && <AlertCircle className="h-4 w-4" />}
                   </div>
@@ -227,7 +234,14 @@ export default function FileUpload({ onFileProcessed, disabled = false, classNam
                     </div>
                     
                     {pf.status === 'processing' && (
-                      <p className="text-xs text-muted-foreground">Processing...</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-xs text-muted-foreground">Processing</p>
+                        <div className="flex gap-1">
+                          <div className="w-1 h-1 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                          <div className="w-1 h-1 bg-primary rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                          <div className="w-1 h-1 bg-primary rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                        </div>
+                      </div>
                     )}
                     
                     {pf.status === 'success' && (

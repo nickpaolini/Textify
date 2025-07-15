@@ -3,6 +3,7 @@ import { ReactNode } from "react";
 import Header from "../components/Header";
 import Footer from "../components/Footer";
 import { ThemeProvider } from "../components/ThemeProvider";
+import { ToastProvider } from "../components/ui/toast";
 
 export const metadata = {
   title: "Textify",
@@ -17,11 +18,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen flex flex-col bg-background text-foreground">
         <ThemeProvider>
-          <Header />
-          <main className="flex-1 flex flex-col items-center justify-center px-4 pt-24 pb-8">
-            {children}
-          </main>
-          <Footer />
+          <ToastProvider>
+            <Header />
+            <main className="flex-1 flex flex-col items-center justify-center px-4 pt-24 pb-8">
+              {children}
+            </main>
+            <Footer />
+          </ToastProvider>
         </ThemeProvider>
       </body>
     </html>

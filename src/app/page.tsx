@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Copy, Loader2, Trash2, ArrowLeftRight, Download } from "lucide-react";
+import { Copy, Trash2, ArrowLeftRight, Download } from "lucide-react";
 import clsx from "clsx";
 import { saveTransformation } from "@/lib/history";
 import FileUpload from "@/components/FileUpload";
@@ -16,6 +16,8 @@ import SmartControls from "@/components/SmartControls";
 import { SmartControlsConfig } from "@/lib/streaming";
 import ComparisonView from "@/components/ComparisonView";
 import { exportByType, sanitizeFilename } from "@/lib/export";
+import { LoadingPulse, StreamingSkeleton, TransformingAnimation } from "@/components/ui/loading";
+import { useToastActions } from "@/components/ui/toast";
 
 const PLACEHOLDER = "Enter your text here...";
 
@@ -41,6 +43,7 @@ export default function HomePage() {
     brief: false,
     gdocs: false,
   });
+  const { showCopySuccess, showExportSuccess, showError } = useToastActions();
   const [selectedTransform, setSelectedTransform] = useState<OutputType>("markdown");
   const [showMore, setShowMore] = useState<{ [k in OutputType]: boolean }>({
     markdown: false,
@@ -158,33 +161,51 @@ export default function HomePage() {
     }
   }, [input, currentFileName, smartControls]);
 
-  const handleCopy = (type: OutputType) => {
+  const handleCopy = async (type: OutputType) => {
     const text = type === "markdown" ? markdown : type === "brief" ? brief : gdocs;
     if (!text) return;
-    if (type === "gdocs") {
-      if (navigator.clipboard && window.ClipboardItem) {
-        const blob = new Blob([text], { type: "text/html" });
-        const data = [new window.ClipboardItem({ "text/html": blob })];
-        navigator.clipboard.write(data);
+    
+    try {
+      if (type === "gdocs") {
+        if (navigator.clipboard && window.ClipboardItem) {
+          const blob = new Blob([text], { type: "text/html" });
+          const data = [new window.ClipboardItem({ "text/html": blob })];
+          await navigator.clipboard.write(data);
+        } else {
+          await navigator.clipboard.writeText(text);
+        }
       } else {
-        navigator.clipboard.writeText(text);
+        await navigator.clipboard.writeText(text);
       }
-    } else {
-      navigator.clipboard.writeText(text);
+      
+      setCopied((prev) => ({ ...prev, [type]: true }));
+      setTimeout(() => setCopied((prev) => ({ ...prev, [type]: false })), 1500);
+      
+      // Show success toast
+      const typeLabel = type === "markdown" ? "Markdown" : type === "brief" ? "Corporate Brief" : "Google Docs";
+      showCopySuccess(typeLabel);
+    } catch {
+      showError("Failed to copy to clipboard");
     }
-    setCopied((prev) => ({ ...prev, [type]: true }));
-    setTimeout(() => setCopied((prev) => ({ ...prev, [type]: false })), 1500);
   };
 
   const handleExport = (type: OutputType) => {
     const text = type === "markdown" ? markdown : type === "brief" ? brief : gdocs;
     if (!text) return;
     
-    const filename = currentFileName 
-      ? sanitizeFilename(currentFileName.replace(/\.[^/.]+$/, "")) // Remove existing extension
-      : undefined;
+    try {
+      const filename = currentFileName 
+        ? sanitizeFilename(currentFileName.replace(/\.[^/.]+$/, "")) // Remove existing extension
+        : undefined;
+        
+      exportByType(text, type, { filename });
       
-    exportByType(text, type, { filename });
+      // Show success toast
+      const typeLabel = type === "markdown" ? "Markdown" : type === "brief" ? "Corporate Brief" : "Google Docs";
+      showExportSuccess(typeLabel);
+    } catch {
+      showError("Failed to export file");
+    }
   };
 
   const handleClearAll = () => {
@@ -272,10 +293,9 @@ export default function HomePage() {
             aria-label={TRANSFORM_OPTIONS.find(opt => opt.key === selectedTransform)?.label}
           >
             {loading === selectedTransform ? (
-              <>
-                <Loader2 className="animate-spin mr-2 h-4 w-4" />
-                {TRANSFORM_OPTIONS.find(opt => opt.key === selectedTransform)?.label || "Transforming..."}
-              </>
+              <LoadingPulse>
+                <span>{TRANSFORM_OPTIONS.find(opt => opt.key === selectedTransform)?.label || "Transforming..."}</span>
+              </LoadingPulse>
             ) : (
               TRANSFORM_OPTIONS.find(opt => opt.key === selectedTransform)?.label || "Transform"
             )}
@@ -294,10 +314,9 @@ export default function HomePage() {
             aria-label={opt.label}
           >
             {loading === opt.key ? (
-              <>
-                <Loader2 className="animate-spin mr-2 h-4 w-4" />
-                {opt.label}
-              </>
+              <LoadingPulse>
+                <span>{opt.label}</span>
+              </LoadingPulse>
             ) : (
               opt.label
             )}
@@ -433,11 +452,21 @@ export default function HomePage() {
                   const content = getCurrentContent("markdown");
                   const showCursor = shouldShowCursor("markdown");
                   
+                  // Show loading animation when transforming
+                  if (loading === "markdown" && !content) {
+                    return <TransformingAnimation type="markdown" />;
+                  }
+                  
+                  // Show streaming skeleton when starting to stream
+                  if (isStreaming === "markdown" && !content) {
+                    return <StreamingSkeleton />;
+                  }
+                  
                   if (content) {
                     return (
                       <pre className="whitespace-pre-wrap text-sm pr-4">
                         {getOutputContent("markdown", content)}
-                        {showCursor && <span className="animate-pulse">|</span>}
+                        {showCursor && <span className="animate-pulse text-primary">|</span>}
                       </pre>
                     );
                   }
@@ -504,11 +533,21 @@ export default function HomePage() {
                   const content = getCurrentContent("brief");
                   const showCursor = shouldShowCursor("brief");
                   
+                  // Show loading animation when transforming
+                  if (loading === "brief" && !content) {
+                    return <TransformingAnimation type="brief" />;
+                  }
+                  
+                  // Show streaming skeleton when starting to stream
+                  if (isStreaming === "brief" && !content) {
+                    return <StreamingSkeleton />;
+                  }
+                  
                   if (content) {
                     return (
                       <span className="whitespace-pre-wrap text-sm pr-4">
                         {getOutputContent("brief", content)}
-                        {showCursor && <span className="animate-pulse">|</span>}
+                        {showCursor && <span className="animate-pulse text-primary">|</span>}
                       </span>
                     );
                   }
@@ -575,13 +614,23 @@ export default function HomePage() {
                   const content = getCurrentContent("gdocs");
                   const showCursor = shouldShowCursor("gdocs");
                   
+                  // Show loading animation when transforming
+                  if (loading === "gdocs" && !content) {
+                    return <TransformingAnimation type="gdocs" />;
+                  }
+                  
+                  // Show streaming skeleton when starting to stream
+                  if (isStreaming === "gdocs" && !content) {
+                    return <StreamingSkeleton />;
+                  }
+                  
                   if (content) {
                     return (
                       <div className="prose prose-sm max-w-none bg-white/80 dark:bg-black/40 rounded p-2 border border-border pr-4">
                         <div
                           dangerouslySetInnerHTML={{ __html: getOutputContent("gdocs", content) || "" }}
                         />
-                        {showCursor && <span className="animate-pulse">|</span>}
+                        {showCursor && <span className="animate-pulse text-primary">|</span>}
                       </div>
                     );
                   }
