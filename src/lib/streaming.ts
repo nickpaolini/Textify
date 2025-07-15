@@ -89,7 +89,7 @@ export class StreamingTransformer {
                   options.onComplete(this.fullContent);
                   return;
                 }
-              } catch (parseError) {
+              } catch {
                 console.warn('Failed to parse streaming data:', line);
               }
             }

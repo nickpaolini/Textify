@@ -1,0 +1,12 @@
+This is a sample text file for testing the file upload feature in Textify.
+
+It contains multiple paragraphs and demonstrates how text files can be uploaded and processed automatically.
+
+Key features:
+- Drag and drop support
+- Automatic text extraction
+- File validation
+- Integration with transformation pipeline
+- History saving with filename as title
+
+The file upload feature makes Textify much more versatile and user-friendly!

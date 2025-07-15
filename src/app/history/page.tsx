@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Textarea } from "@/components/ui/textarea";
 import { 
@@ -13,7 +12,6 @@ import {
   Heart, 
   HeartOff, 
   Search, 
-  Filter, 
   Clock,
   FileText,
   X,
@@ -29,6 +27,7 @@ import {
   formatDate
 } from "@/lib/history";
 import { exportByType, sanitizeFilename } from "@/lib/export";
+import Link from "next/link";
 
 export default function HistoryPage() {
   const [history, setHistory] = useState<TransformationHistory[]>([]);
@@ -264,7 +263,7 @@ export default function HistoryPage() {
               </p>
               {history.length === 0 && (
                 <Button asChild>
-                  <a href="/">Create Your First Transformation</a>
+                  <Link href="/">Create Your First Transformation</Link>
                 </Button>
               )}
             </CardContent>

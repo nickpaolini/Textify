@@ -35,6 +35,7 @@ export default function TeamResults() {
       <div className="flex flex-col gap-6">
         {teamMembers.map((member) => (
           <Card key={member.name} className="flex flex-col md:flex-row items-center gap-6 p-6 shadow-md">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={member.avatar}
               alt={member.name}

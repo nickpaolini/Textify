@@ -9,8 +9,7 @@ import {
   extractTextFromFile, 
   FileProcessingResult, 
   formatFileSize, 
-  getFileTypeLabel,
-  validateFile
+  getFileTypeLabel
 } from "@/lib/fileUtils";
 
 interface FileUploadProps {
@@ -56,7 +55,7 @@ export default function FileUpload({ onFileProcessed, disabled = false, classNam
           setProcessingFiles(prev => prev.filter(pf => pf.file !== file));
         }, 3000);
       }
-    } catch (error) {
+    } catch {
       setProcessingFiles(prev => 
         prev.map(pf => 
           pf.file === file 
