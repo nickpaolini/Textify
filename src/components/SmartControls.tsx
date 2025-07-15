@@ -153,20 +153,46 @@ export default function SmartControls({ config, onChange, disabled = false, clas
                 {getToneLabel(config.tone)}
               </Badge>
             </div>
-            <div className="space-y-2">
-              <Slider
-                value={[config.tone]}
-                onValueChange={handleToneChange}
-                max={100}
-                min={0}
-                step={1}
-                disabled={disabled}
-                className="w-full"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground">
-                <span>Formal</span>
-                <span>Balanced</span>
-                <span>Casual</span>
+            <div className="space-y-3">
+              <div className="relative">
+                <Slider
+                  value={[config.tone]}
+                  onValueChange={handleToneChange}
+                  max={100}
+                  min={0}
+                  step={5}
+                  disabled={disabled}
+                  className="w-full"
+                />
+                {/* Step marks */}
+                <div className="absolute top-6 left-0 right-0 flex justify-between pointer-events-none">
+                  {[0, 25, 50, 75, 100].map((step) => (
+                    <div key={step} className="flex flex-col items-center">
+                      <div 
+                        className={`w-1 h-2 rounded-full transition-colors ${
+                          config.tone >= step ? 'bg-primary' : 'bg-muted-foreground/30'
+                        }`} 
+                      />
+                      <span className="text-xs text-muted-foreground mt-1 font-medium">
+                        {step}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="flex justify-between text-xs text-muted-foreground mt-12">
+                <div className="flex flex-col items-start">
+                  <span className="font-medium">Very Formal</span>
+                  <span className="text-xs opacity-75">Academic</span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="font-medium">Balanced</span>
+                  <span className="text-xs opacity-75">Professional</span>
+                </div>
+                <div className="flex flex-col items-end">
+                  <span className="font-medium">Very Casual</span>
+                  <span className="text-xs opacity-75">Friendly</span>
+                </div>
               </div>
             </div>
           </div>
