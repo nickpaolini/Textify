@@ -10,7 +10,9 @@ export const SUPPORTED_FILE_TYPES = {
   'text/plain': ['.txt'],
   'text/markdown': ['.md'],
   'application/pdf': ['.pdf'],
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [
+    '.docx',
+  ],
   'application/msword': ['.doc'],
 } as const;
 
@@ -18,9 +20,11 @@ export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 
 export function isFileTypeSupported(file: File): boolean {
   const supportedTypes = Object.keys(SUPPORTED_FILE_TYPES);
-  return supportedTypes.includes(file.type) || 
-         file.name.toLowerCase().endsWith('.txt') ||
-         file.name.toLowerCase().endsWith('.md');
+  return (
+    supportedTypes.includes(file.type) ||
+    file.name.toLowerCase().endsWith('.txt') ||
+    file.name.toLowerCase().endsWith('.md')
+  );
 }
 
 export function getFileExtension(filename: string): string {
@@ -32,7 +36,7 @@ export function validateFile(file: File): { valid: boolean; error?: string } {
   if (file.size > MAX_FILE_SIZE) {
     return {
       valid: false,
-      error: `File size too large. Maximum size is ${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB.`
+      error: `File size too large. Maximum size is ${Math.round(MAX_FILE_SIZE / 1024 / 1024)}MB.`,
     };
   }
 
@@ -40,14 +44,17 @@ export function validateFile(file: File): { valid: boolean; error?: string } {
   if (!isFileTypeSupported(file)) {
     return {
       valid: false,
-      error: 'Unsupported file type. Supported formats: .txt, .md, .pdf, .docx, .doc'
+      error:
+        'Unsupported file type. Supported formats: .txt, .md, .pdf, .docx, .doc',
     };
   }
 
   return { valid: true };
 }
 
-export async function extractTextFromFile(file: File): Promise<FileProcessingResult> {
+export async function extractTextFromFile(
+  file: File
+): Promise<FileProcessingResult> {
   const validation = validateFile(file);
   if (!validation.valid) {
     return {
@@ -55,13 +62,13 @@ export async function extractTextFromFile(file: File): Promise<FileProcessingRes
       filename: file.name,
       fileType: file.type,
       success: false,
-      error: validation.error
+      error: validation.error,
     };
   }
 
   try {
     const extension = getFileExtension(file.name);
-    
+
     switch (extension) {
       case '.txt':
       case '.md':
@@ -81,35 +88,37 @@ export async function extractTextFromFile(file: File): Promise<FileProcessingRes
       filename: file.name,
       fileType: file.type,
       success: false,
-      error: error instanceof Error ? error.message : 'Unknown error occurred'
+      error: error instanceof Error ? error.message : 'Unknown error occurred',
     };
   }
 }
 
-async function extractTextFromTextFile(file: File): Promise<FileProcessingResult> {
+async function extractTextFromTextFile(
+  file: File
+): Promise<FileProcessingResult> {
   return new Promise((resolve) => {
     const reader = new FileReader();
-    
+
     reader.onload = (e) => {
       const text = e.target?.result as string;
       resolve({
         text: text || '',
         filename: file.name,
         fileType: file.type,
-        success: true
+        success: true,
       });
     };
-    
+
     reader.onerror = () => {
       resolve({
         text: '',
         filename: file.name,
         fileType: file.type,
         success: false,
-        error: 'Failed to read file'
+        error: 'Failed to read file',
       });
     };
-    
+
     reader.readAsText(file);
   });
 }
@@ -122,11 +131,13 @@ async function extractTextFromPDF(file: File): Promise<FileProcessingResult> {
     filename: file.name,
     fileType: file.type,
     success: false,
-    error: 'PDF support coming soon! Please copy and paste the text for now.'
+    error: 'PDF support coming soon! Please copy and paste the text for now.',
   };
 }
 
-async function extractTextFromWordDocument(file: File): Promise<FileProcessingResult> {
+async function extractTextFromWordDocument(
+  file: File
+): Promise<FileProcessingResult> {
   // For now, return an error suggesting copy/paste
   // We can implement Word document parsing later with a library like mammoth
   return {
@@ -134,23 +145,24 @@ async function extractTextFromWordDocument(file: File): Promise<FileProcessingRe
     filename: file.name,
     fileType: file.type,
     success: false,
-    error: 'Word document support coming soon! Please copy and paste the text for now.'
+    error:
+      'Word document support coming soon! Please copy and paste the text for now.',
   };
 }
 
 export function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 Bytes';
-  
+
   const k = 1024;
   const sizes = ['Bytes', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+
+  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 }
 
 export function getFileTypeLabel(file: File): string {
   const extension = getFileExtension(file.name);
-  
+
   switch (extension) {
     case '.txt':
       return 'Text File';

@@ -1,38 +1,39 @@
-"use client";
+'use client';
 
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Textarea } from "@/components/ui/textarea";
-import { 
-  Copy, 
-  Trash2, 
-  Heart, 
-  HeartOff, 
-  Search, 
+import clsx from 'clsx';
+import {
+  Copy,
+  Trash2,
+  Heart,
+  HeartOff,
+  Search,
   Clock,
   FileText,
   X,
-  Download
-} from "lucide-react";
-import clsx from "clsx";
-import { 
-  TransformationHistory, 
-  getTransformationHistory, 
-  deleteTransformation, 
+  Download,
+} from 'lucide-react';
+import Link from 'next/link';
+import { useState, useEffect } from 'react';
+
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
+import { exportByType, sanitizeFilename } from '@/lib/export';
+import {
+  type TransformationHistory,
+  getTransformationHistory,
+  deleteTransformation,
   toggleFavorite,
   getTransformationTypeLabel,
-  formatDate
-} from "@/lib/history";
-import { exportByType, sanitizeFilename } from "@/lib/export";
-import Link from "next/link";
+  formatDate,
+} from '@/lib/history';
 
 export default function HistoryPage() {
   const [history, setHistory] = useState<TransformationHistory[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState<string>("all");
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterType, setFilterType] = useState<string>('all');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [selectedItems, setSelectedItems] = useState<Set<string>>(new Set());
@@ -63,23 +64,25 @@ export default function HistoryPage() {
   };
 
   const handleExport = (item: TransformationHistory) => {
-    const filename = item.title 
+    const filename = item.title
       ? sanitizeFilename(item.title)
       : `textify-${item.transformationType}-${formatDate(item.timestamp).replace(/[/:,\s]/g, '-')}`;
-      
+
     exportByType(item.outputText, item.transformationType, { filename });
   };
 
   const handleBulkExport = () => {
-    const selectedHistoryItems = history.filter(item => selectedItems.has(item.id));
-    
+    const selectedHistoryItems = history.filter((item) =>
+      selectedItems.has(item.id)
+    );
+
     selectedHistoryItems.forEach((item, index) => {
       // Add slight delay between downloads to avoid browser blocking
       setTimeout(() => {
         handleExport(item);
       }, index * 100);
     });
-    
+
     setSelectedItems(new Set());
     setShowBulkActions(false);
   };
@@ -98,17 +101,19 @@ export default function HistoryPage() {
     if (selectedItems.size === filteredHistory.length) {
       setSelectedItems(new Set());
     } else {
-      setSelectedItems(new Set(filteredHistory.map(item => item.id)));
+      setSelectedItems(new Set(filteredHistory.map((item) => item.id)));
     }
   };
 
-  const filteredHistory = history.filter(item => {
-    const matchesSearch = 
+  const filteredHistory = history.filter((item) => {
+    const matchesSearch =
       item.inputText.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.outputText.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (item.title && item.title.toLowerCase().includes(searchTerm.toLowerCase()));
-    
-    const matchesType = filterType === "all" || item.transformationType === filterType;
+      (item.title &&
+        item.title.toLowerCase().includes(searchTerm.toLowerCase()));
+
+    const matchesType =
+      filterType === 'all' || item.transformationType === filterType;
     const matchesFavorites = !showFavoritesOnly || item.isFavorite;
 
     return matchesSearch && matchesType && matchesFavorites;
@@ -156,11 +161,16 @@ export default function HistoryPage() {
                 <option value="gdocs">Google Docs</option>
               </select>
               <Button
-                variant={showFavoritesOnly ? "default" : "outline"}
+                variant={showFavoritesOnly ? 'default' : 'outline'}
                 onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
                 className="flex items-center gap-2"
               >
-                <Heart className={clsx("h-4 w-4", showFavoritesOnly && "fill-current")} />
+                <Heart
+                  className={clsx(
+                    'h-4 w-4',
+                    showFavoritesOnly && 'fill-current'
+                  )}
+                />
                 Favorites Only
               </Button>
             </div>
@@ -171,18 +181,17 @@ export default function HistoryPage() {
       {/* Results Summary */}
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground">
-          {filteredHistory.length === 0 
-            ? "No transformations found" 
-            : `${filteredHistory.length} transformation${filteredHistory.length !== 1 ? 's' : ''} found`
-          }
+          {filteredHistory.length === 0
+            ? 'No transformations found'
+            : `${filteredHistory.length} transformation${filteredHistory.length !== 1 ? 's' : ''} found`}
         </p>
-        {(searchTerm || filterType !== "all" || showFavoritesOnly) && (
+        {(searchTerm || filterType !== 'all' || showFavoritesOnly) && (
           <Button
             variant="ghost"
             size="sm"
             onClick={() => {
-              setSearchTerm("");
-              setFilterType("all");
+              setSearchTerm('');
+              setFilterType('all');
               setShowFavoritesOnly(false);
             }}
             className="flex items-center gap-2"
@@ -216,7 +225,9 @@ export default function HistoryPage() {
                       onClick={handleSelectAll}
                       className="flex items-center gap-2"
                     >
-                      {selectedItems.size === filteredHistory.length ? 'Deselect All' : 'Select All'}
+                      {selectedItems.size === filteredHistory.length
+                        ? 'Deselect All'
+                        : 'Select All'}
                     </Button>
                     {selectedItems.size > 0 && (
                       <Button
@@ -254,12 +265,13 @@ export default function HistoryPage() {
           <Card>
             <CardContent className="text-center py-12">
               <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No transformations found</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                No transformations found
+              </h3>
               <p className="text-muted-foreground mb-4">
-                {history.length === 0 
-                  ? "Start creating transformations to see them here!" 
-                  : "Try adjusting your search or filter criteria."
-                }
+                {history.length === 0
+                  ? 'Start creating transformations to see them here!'
+                  : 'Try adjusting your search or filter criteria.'}
               </p>
               {history.length === 0 && (
                 <Button asChild>
@@ -282,62 +294,66 @@ export default function HistoryPage() {
                     />
                   )}
                   <div className="flex items-start justify-between flex-1">
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <Badge variant="secondary">
-                        {getTransformationTypeLabel(item.transformationType)}
-                      </Badge>
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {formatDate(item.timestamp)}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="secondary">
+                          {getTransformationTypeLabel(item.transformationType)}
+                        </Badge>
+                        <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                          <Clock className="h-3 w-3" />
+                          {formatDate(item.timestamp)}
+                        </div>
                       </div>
-                    </div>
-                    {item.title && (
-                      <CardTitle className="text-lg">{item.title}</CardTitle>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleToggleFavorite(item.id)}
-                      className="shrink-0"
-                    >
-                      {item.isFavorite ? (
-                        <Heart className="h-4 w-4 fill-current text-red-500" />
-                      ) : (
-                        <HeartOff className="h-4 w-4" />
+                      {item.title && (
+                        <CardTitle className="text-lg">{item.title}</CardTitle>
                       )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleCopy(item.outputText, item.id)}
-                      className="shrink-0"
-                    >
-                      <Copy className={clsx(
-                        "h-4 w-4",
-                        copied === item.id ? "text-green-500" : "text-muted-foreground"
-                      )} />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleExport(item)}
-                      className="shrink-0"
-                      title="Export file"
-                    >
-                      <Download className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDelete(item.id)}
-                      className="shrink-0 text-red-500 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleToggleFavorite(item.id)}
+                        className="shrink-0"
+                      >
+                        {item.isFavorite ? (
+                          <Heart className="h-4 w-4 fill-current text-red-500" />
+                        ) : (
+                          <HeartOff className="h-4 w-4" />
+                        )}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleCopy(item.outputText, item.id)}
+                        className="shrink-0"
+                      >
+                        <Copy
+                          className={clsx(
+                            'h-4 w-4',
+                            copied === item.id
+                              ? 'text-green-500'
+                              : 'text-muted-foreground'
+                          )}
+                        />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleExport(item)}
+                        className="shrink-0"
+                        title="Export file"
+                      >
+                        <Download className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDelete(item.id)}
+                        className="shrink-0 text-red-500 hover:text-red-700"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </CardHeader>
@@ -348,10 +364,9 @@ export default function HistoryPage() {
                     <ScrollArea className="h-32 w-full bg-muted rounded">
                       <div className="p-3">
                         <p className="text-sm whitespace-pre-wrap">
-                          {item.inputText.length > 200 
-                            ? `${item.inputText.slice(0, 200)}...` 
-                            : item.inputText
-                          }
+                          {item.inputText.length > 200
+                            ? `${item.inputText.slice(0, 200)}...`
+                            : item.inputText}
                         </p>
                       </div>
                     </ScrollArea>
@@ -361,20 +376,20 @@ export default function HistoryPage() {
                     <ScrollArea className="h-32 w-full bg-muted rounded">
                       <div className="p-3">
                         {item.transformationType === 'gdocs' ? (
-                          <div 
+                          <div
                             className="prose prose-sm max-w-none"
-                            dangerouslySetInnerHTML={{ 
-                              __html: item.outputText.length > 200 
-                                ? `${item.outputText.slice(0, 200)}...` 
-                                : item.outputText 
+                            dangerouslySetInnerHTML={{
+                              __html:
+                                item.outputText.length > 200
+                                  ? `${item.outputText.slice(0, 200)}...`
+                                  : item.outputText,
                             }}
                           />
                         ) : (
                           <pre className="text-sm whitespace-pre-wrap">
-                            {item.outputText.length > 200 
-                              ? `${item.outputText.slice(0, 200)}...` 
-                              : item.outputText
-                            }
+                            {item.outputText.length > 200
+                              ? `${item.outputText.slice(0, 200)}...`
+                              : item.outputText}
                           </pre>
                         )}
                       </div>
