@@ -1,0 +1,432 @@
+// Prisma Schema for Textify - Text Processing Platform
+// Generated for Next.js 15 with NextAuth.js v5 compatibility
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// Authentication Models (NextAuth.js v5 compatible)
+// ============================================================================
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?   // For credentials provider (hashed)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  accounts      Account[]
+  sessions      Session[]
+  workspaces    Workspace[]
+  documents     Document[]
+  templates     Template[]
+  history       TransformationHistory[]
+  apiKeys       ApiKey[]
+
+  // User preferences
+  preferences   UserPreferences?
+
+  @@index([email])
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String  // oauth, email, credentials
+  provider          String  // google, github, credentials
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ============================================================================
+// User Preferences & Settings
+// ============================================================================
+
+model UserPreferences {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  // Editor preferences
+  theme           String  @default("auto") // light, dark, auto
+  editorFont      String  @default("monospace")
+  fontSize        Int     @default(14)
+  lineHeight      Float   @default(1.5)
+  tabSize         Int     @default(2)
+  wordWrap        Boolean @default(true)
+  showLineNumbers Boolean @default(true)
+  showMinimap     Boolean @default(false)
+
+  // Auto-save settings
+  autoSave         Boolean @default(true)
+  autoSaveInterval Int     @default(5000) // milliseconds
+
+  // Default transformation settings
+  defaultTone   Int @default(50) // 0-100 scale
+  defaultLength String @default("standard") // brief, standard, detailed
+
+  // Notification preferences
+  emailNotifications Boolean @default(true)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_preferences")
+}
+
+// ============================================================================
+// Workspace & Organization
+// ============================================================================
+
+model Workspace {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  icon        String?  // emoji or icon identifier
+  color       String?  // hex color for UI
+
+  // Owner
+  ownerId String
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  // Settings
+  isDefault Boolean @default(false)
+  isShared  Boolean @default(false)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  documents Document[]
+  templates Template[]
+  members   WorkspaceMember[]
+
+  @@index([ownerId])
+  @@index([isDefault])
+  @@map("workspaces")
+}
+
+model WorkspaceMember {
+  id          String @id @default(cuid())
+  workspaceId String
+  userEmail   String // Email of invited user
+  role        String @default("viewer") // owner, editor, viewer
+
+  // Timestamps
+  invitedAt DateTime  @default(now())
+  joinedAt  DateTime?
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, userEmail])
+  @@index([workspaceId])
+  @@map("workspace_members")
+}
+
+// ============================================================================
+// Documents & Content
+// ============================================================================
+
+model Document {
+  id          String  @id @default(cuid())
+  title       String
+  content     String  @db.Text
+  description String?
+
+  // Organization
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+
+  // Owner
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Metadata
+  language    String?  @default("en")
+  wordCount   Int      @default(0)
+  charCount   Int      @default(0)
+  tags        String[] // Array of tags
+
+  // Sharing
+  isPublic     Boolean   @default(false)
+  shareToken   String?   @unique
+  sharedAt     DateTime?
+  expiresAt    DateTime?
+
+  // Version control
+  version     Int      @default(1)
+  previousId  String?  // Reference to previous version
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lastViewedAt DateTime @default(now())
+
+  // Relations
+  versions DocumentVersion[]
+
+  @@index([userId])
+  @@index([workspaceId])
+  @@index([shareToken])
+  @@index([createdAt])
+  @@map("documents")
+}
+
+model DocumentVersion {
+  id         String   @id @default(cuid())
+  documentId String
+  content    String   @db.Text
+  version    Int
+
+  // Change description
+  changeDescription String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  document Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, version])
+  @@index([documentId])
+  @@map("document_versions")
+}
+
+// ============================================================================
+// Templates & Snippets
+// ============================================================================
+
+model Template {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  content     String  @db.Text
+
+  // Categorization
+  category String @default("general") // email, code, legal, social, etc.
+  tags     String[]
+
+  // Variables/placeholders in template
+  variables String[] // e.g., ["name", "date", "company"]
+
+  // Organization
+  workspaceId String?
+  workspace   Workspace? @relation(fields: [workspaceId], references: [id], onDelete: SetNull)
+
+  // Owner
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Sharing
+  isPublic   Boolean @default(false)
+  shareToken String? @unique
+
+  // Usage statistics
+  usageCount Int @default(0)
+
+  // Timestamps
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  lastUsedAt   DateTime?
+
+  @@index([userId])
+  @@index([workspaceId])
+  @@index([category])
+  @@map("templates")
+}
+
+// ============================================================================
+// Transformation History
+// ============================================================================
+
+model TransformationHistory {
+  id String @id @default(cuid())
+
+  // Content
+  inputText   String  @db.Text
+  outputText  String  @db.Text
+
+  // Transformation details
+  transformationType String  // markdown, brief, gdocs
+  tone               Int?    // 0-100
+  length             String? // brief, standard, detailed
+  customPrompt       String?
+
+  // Metadata
+  title       String?
+  isFavorite  Boolean @default(false)
+  wordCount   Int     @default(0)
+  charCount   Int     @default(0)
+
+  // Owner
+  userId String?
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([isFavorite])
+  @@map("transformation_history")
+}
+
+// ============================================================================
+// API Keys & Usage
+// ============================================================================
+
+model ApiKey {
+  id     String @id @default(cuid())
+  name   String
+  key    String @unique // Hashed API key
+  prefix String // First 8 chars for display (e.g., "sk-proj-...")
+
+  // Owner
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Permissions & Limits
+  permissions String[] // read, write, delete
+  rateLimit   Int      @default(1000) // requests per hour
+
+  // Usage tracking
+  usageCount   Int      @default(0)
+  lastUsedAt   DateTime?
+  lastUsedFrom String?  // IP address
+
+  // Status
+  isActive Boolean @default(true)
+
+  // Expiration
+  expiresAt DateTime?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([key])
+  @@map("api_keys")
+}
+
+// ============================================================================
+// Analytics & Usage Tracking
+// ============================================================================
+
+model UsageStats {
+  id String @id @default(cuid())
+
+  // User identifier (can be anonymous)
+  userId       String?
+  sessionId    String?
+
+  // Event details
+  eventType    String   // transformation, export, template_use, etc.
+  eventData    Json?    // Additional event metadata
+
+  // Resource usage
+  inputLength  Int?
+  outputLength Int?
+  processingTime Int?   // milliseconds
+
+  // Context
+  userAgent    String?
+  ipAddress    String?
+  country      String?
+
+  // Timestamps
+  timestamp DateTime @default(now())
+
+  @@index([userId])
+  @@index([eventType])
+  @@index([timestamp])
+  @@map("usage_stats")
+}
+
+// ============================================================================
+// Feedback & Support
+// ============================================================================
+
+model Feedback {
+  id String @id @default(cuid())
+
+  // User (optional for anonymous feedback)
+  userId String?
+  email  String?
+
+  // Feedback content
+  type    String  // bug, feature, improvement, other
+  title   String
+  message String  @db.Text
+  rating  Int?    // 1-5 stars
+
+  // Context
+  url        String?
+  userAgent  String?
+  screenshot String? // URL to uploaded screenshot
+
+  // Status
+  status String @default("open") // open, in_progress, resolved, closed
+
+  // Admin response
+  response      String?   @db.Text
+  respondedAt   DateTime?
+  respondedBy   String?
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([type])
+  @@map("feedback")
+}
