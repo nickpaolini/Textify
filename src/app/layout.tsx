@@ -1,15 +1,16 @@
-import "./globals.css";
-import { ReactNode } from "react";
-import Header from "../components/Header";
-import Footer from "../components/Footer";
-import { ThemeProvider } from "../components/ThemeProvider";
-import { ToastProvider } from "../components/ui/toast";
+import './globals.css';
+import { type ReactNode } from 'react';
+
+import Footer from '../components/Footer';
+import Header from '../components/Header';
+import { ThemeProvider } from '../components/ThemeProvider';
+import { ToastProvider } from '../components/ui/toast';
 
 export const metadata = {
-  title: "Textify",
-  description: "AI-powered text transformation tool",
+  title: 'Textify',
+  description: 'AI-powered text transformation tool',
   icons: {
-    icon: "/favicon.ico",
+    icon: '/favicon.ico',
   },
 };
 

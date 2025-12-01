@@ -1,25 +1,32 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
-import { Button } from "./ui/button";
-import { Slider } from "./ui/slider";
-import { Textarea } from "./ui/textarea";
-import { Badge } from "./ui/badge";
-import { Separator } from "./ui/separator";
-import { 
-  Settings, 
-  Zap, 
-  Volume2, 
-  FileText, 
-  ChevronDown, 
+import clsx from 'clsx';
+import {
+  Settings,
+  Zap,
+  Volume2,
+  FileText,
+  ChevronDown,
   ChevronUp,
   RotateCcw,
-  Wand2
-} from "lucide-react";
-import clsx from "clsx";
+  Wand2,
+} from 'lucide-react';
+import { useState } from 'react';
 
-import type { SmartControlsConfig } from "@/lib/streaming";
+import type { SmartControlsConfig } from '@/lib/streaming';
+
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from './ui/card';
+import { Separator } from './ui/separator';
+import { Slider } from './ui/slider';
+import { Textarea } from './ui/textarea';
 
 interface SmartControlsProps {
   config: SmartControlsConfig;
@@ -31,35 +38,42 @@ interface SmartControlsProps {
 const TONE_LABELS = {
   0: 'Very Formal',
   25: 'Formal',
-  50: 'Balanced', 
+  50: 'Balanced',
   75: 'Casual',
-  100: 'Very Casual'
+  100: 'Very Casual',
 };
 
 const LENGTH_OPTIONS = [
-  { 
-    value: 'brief' as const, 
-    label: 'Brief', 
+  {
+    value: 'brief' as const,
+    label: 'Brief',
     description: 'Concise and to the point',
-    icon: <Zap className="h-4 w-4" />
+    icon: <Zap className="h-4 w-4" />,
   },
-  { 
-    value: 'standard' as const, 
-    label: 'Standard', 
+  {
+    value: 'standard' as const,
+    label: 'Standard',
     description: 'Balanced length and detail',
-    icon: <Volume2 className="h-4 w-4" />
+    icon: <Volume2 className="h-4 w-4" />,
   },
-  { 
-    value: 'detailed' as const, 
-    label: 'Detailed', 
+  {
+    value: 'detailed' as const,
+    label: 'Detailed',
     description: 'Comprehensive and thorough',
-    icon: <FileText className="h-4 w-4" />
+    icon: <FileText className="h-4 w-4" />,
   },
 ];
 
-export default function SmartControls({ config, onChange, disabled = false, className }: SmartControlsProps) {
+export default function SmartControls({
+  config,
+  onChange,
+  disabled = false,
+  className,
+}: SmartControlsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [showCustomPrompt, setShowCustomPrompt] = useState(config.useCustomPrompt);
+  const [showCustomPrompt, setShowCustomPrompt] = useState(
+    config.useCustomPrompt
+  );
 
   const handleToneChange = (value: number[]) => {
     onChange({ ...config, tone: value[0] });
@@ -84,26 +98,37 @@ export default function SmartControls({ config, onChange, disabled = false, clas
       tone: 50,
       length: 'standard',
       customPrompt: '',
-      useCustomPrompt: false
+      useCustomPrompt: false,
     });
     setShowCustomPrompt(false);
   };
 
   const getToneLabel = (value: number) => {
     // Find closest predefined label
-    const closest = Object.keys(TONE_LABELS).reduce((prev, curr) => 
-      Math.abs(Number(curr) - value) < Math.abs(Number(prev) - value) ? curr : prev
+    const closest = Object.keys(TONE_LABELS).reduce((prev, curr) =>
+      Math.abs(Number(curr) - value) < Math.abs(Number(prev) - value)
+        ? curr
+        : prev
     );
     return TONE_LABELS[Number(closest) as keyof typeof TONE_LABELS];
   };
 
-  const isNonDefault = config.tone !== 50 || config.length !== 'standard' || config.useCustomPrompt;
+  const isNonDefault =
+    config.tone !== 50 ||
+    config.length !== 'standard' ||
+    config.useCustomPrompt;
 
   return (
-    <Card className={clsx("border-2 transition-all duration-200", {
-      "border-primary/20 bg-primary/5": isNonDefault,
-      "border-border": !isNonDefault
-    }, className)}>
+    <Card
+      className={clsx(
+        'border-2 transition-all duration-200',
+        {
+          'border-primary/20 bg-primary/5': isNonDefault,
+          'border-border': !isNonDefault,
+        },
+        className
+      )}
+    >
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -134,7 +159,11 @@ export default function SmartControls({ config, onChange, disabled = false, clas
               onClick={() => setIsExpanded(!isExpanded)}
               disabled={disabled}
             >
-              {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              {isExpanded ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
             </Button>
           </div>
         </div>
@@ -168,10 +197,12 @@ export default function SmartControls({ config, onChange, disabled = false, clas
                 <div className="absolute top-6 left-0 right-0 flex justify-between pointer-events-none">
                   {[0, 25, 50, 75, 100].map((step) => (
                     <div key={step} className="flex flex-col items-center">
-                      <div 
+                      <div
                         className={`w-1 h-2 rounded-full transition-colors ${
-                          config.tone >= step ? 'bg-primary' : 'bg-muted-foreground/30'
-                        }`} 
+                          config.tone >= step
+                            ? 'bg-primary'
+                            : 'bg-muted-foreground/30'
+                        }`}
                       />
                       <span className="text-xs text-muted-foreground mt-1 font-medium">
                         {step}
@@ -206,7 +237,9 @@ export default function SmartControls({ config, onChange, disabled = false, clas
               {LENGTH_OPTIONS.map((option) => (
                 <Button
                   key={option.value}
-                  variant={config.length === option.value ? "default" : "outline"}
+                  variant={
+                    config.length === option.value ? 'default' : 'outline'
+                  }
                   size="sm"
                   onClick={() => handleLengthChange(option.value)}
                   disabled={disabled}
@@ -218,7 +251,10 @@ export default function SmartControls({ config, onChange, disabled = false, clas
               ))}
             </div>
             <div className="text-xs text-muted-foreground text-center">
-              {LENGTH_OPTIONS.find(opt => opt.value === config.length)?.description}
+              {
+                LENGTH_OPTIONS.find((opt) => opt.value === config.length)
+                  ?.description
+              }
             </div>
           </div>
 
@@ -229,7 +265,7 @@ export default function SmartControls({ config, onChange, disabled = false, clas
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium">Custom Instructions</label>
               <Button
-                variant={config.useCustomPrompt ? "default" : "outline"}
+                variant={config.useCustomPrompt ? 'default' : 'outline'}
                 size="sm"
                 onClick={toggleCustomPrompt}
                 disabled={disabled}
@@ -239,7 +275,7 @@ export default function SmartControls({ config, onChange, disabled = false, clas
                 {config.useCustomPrompt ? 'Enabled' : 'Enable'}
               </Button>
             </div>
-            
+
             {showCustomPrompt && (
               <div className="space-y-2">
                 <Textarea
@@ -251,7 +287,8 @@ export default function SmartControls({ config, onChange, disabled = false, clas
                   className="text-sm"
                 />
                 <div className="text-xs text-muted-foreground">
-                  Example: &quot;Use technical language&quot;, &quot;Include examples&quot;, &quot;Make it sound more confident&quot;
+                  Example: &quot;Use technical language&quot;, &quot;Include
+                  examples&quot;, &quot;Make it sound more confident&quot;
                 </div>
               </div>
             )}

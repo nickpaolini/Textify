@@ -1,19 +1,20 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
-import { Button } from "./ui/button";
-import { ScrollArea } from "./ui/scroll-area";
-import { Separator } from "./ui/separator";
-import { Badge } from "./ui/badge";
-import { 
-  ArrowLeftRight, 
-  Copy, 
-  FileText, 
-  Wand2,
-  X
-} from "lucide-react";
-import clsx from "clsx";
+import clsx from 'clsx';
+import { ArrowLeftRight, Copy, FileText, Wand2, X } from 'lucide-react';
+import { useState } from 'react';
+
+import { Badge } from './ui/badge';
+import { Button } from './ui/button';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from './ui/card';
+import { ScrollArea } from './ui/scroll-area';
+import { Separator } from './ui/separator';
 
 interface ComparisonViewProps {
   originalText: string;
@@ -25,16 +26,18 @@ interface ComparisonViewProps {
   className?: string;
 }
 
-export default function ComparisonView({ 
-  originalText, 
-  transformedText, 
-  transformType, 
-  isVisible, 
-  onClose, 
+export default function ComparisonView({
+  originalText,
+  transformedText,
+  transformType,
+  isVisible,
+  onClose,
   onCopy,
-  className 
+  className,
 }: ComparisonViewProps) {
-  const [layout, setLayout] = useState<'side-by-side' | 'stacked'>('side-by-side');
+  const [layout, setLayout] = useState<'side-by-side' | 'stacked'>(
+    'side-by-side'
+  );
 
   if (!isVisible) return null;
 
@@ -60,7 +63,7 @@ export default function ComparisonView({
   };
 
   return (
-    <Card className={clsx("w-full", className)}>
+    <Card className={clsx('w-full', className)}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -74,16 +77,16 @@ export default function ComparisonView({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setLayout(layout === 'side-by-side' ? 'stacked' : 'side-by-side')}
+              onClick={() =>
+                setLayout(
+                  layout === 'side-by-side' ? 'stacked' : 'side-by-side'
+                )
+              }
               className="text-xs"
             >
               {layout === 'side-by-side' ? 'Stack' : 'Side by Side'}
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={onClose}
-            >
+            <Button variant="ghost" size="icon" onClick={onClose}>
               <X className="h-4 w-4" />
             </Button>
           </div>
@@ -94,10 +97,14 @@ export default function ComparisonView({
       </CardHeader>
 
       <CardContent>
-        <div className={clsx(
-          "grid gap-4",
-          layout === 'side-by-side' ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1"
-        )}>
+        <div
+          className={clsx(
+            'grid gap-4',
+            layout === 'side-by-side'
+              ? 'grid-cols-1 lg:grid-cols-2'
+              : 'grid-cols-1'
+          )}
+        >
           {/* Original Text */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -123,7 +130,8 @@ export default function ComparisonView({
               </div>
             </ScrollArea>
             <div className="text-xs text-muted-foreground">
-              {originalText.length} characters • {originalText.split(/\s+/).length} words
+              {originalText.length} characters •{' '}
+              {originalText.split(/\s+/).length} words
             </div>
           </div>
 
@@ -156,7 +164,7 @@ export default function ComparisonView({
             <ScrollArea className="h-[300px] w-full bg-muted rounded">
               <div className="p-4">
                 {transformType === 'gdocs' ? (
-                  <div 
+                  <div
                     className="prose prose-sm max-w-none"
                     dangerouslySetInnerHTML={{ __html: transformedText }}
                   />
@@ -168,12 +176,17 @@ export default function ComparisonView({
               </div>
             </ScrollArea>
             <div className="text-xs text-muted-foreground">
-              {transformedText.length} characters • {transformedText.split(/\s+/).length} words
+              {transformedText.length} characters •{' '}
+              {transformedText.split(/\s+/).length} words
               {transformedText.length !== originalText.length && (
-                <span className={clsx(
-                  "ml-2",
-                  transformedText.length > originalText.length ? "text-orange-600" : "text-green-600"
-                )}>
+                <span
+                  className={clsx(
+                    'ml-2',
+                    transformedText.length > originalText.length
+                      ? 'text-orange-600'
+                      : 'text-green-600'
+                  )}
+                >
                   ({transformedText.length > originalText.length ? '+' : ''}
                   {transformedText.length - originalText.length} chars)
                 </span>
@@ -188,24 +201,35 @@ export default function ComparisonView({
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
             <div>
               <div className="text-muted-foreground">Length Change</div>
-              <div className={clsx(
-                "font-medium",
-                transformedText.length > originalText.length ? "text-orange-600" : 
-                transformedText.length < originalText.length ? "text-green-600" : "text-muted-foreground"
-              )}>
-                {transformedText.length > originalText.length ? 'Expanded' : 
-                 transformedText.length < originalText.length ? 'Condensed' : 'Same Length'}
+              <div
+                className={clsx(
+                  'font-medium',
+                  transformedText.length > originalText.length
+                    ? 'text-orange-600'
+                    : transformedText.length < originalText.length
+                      ? 'text-green-600'
+                      : 'text-muted-foreground'
+                )}
+              >
+                {transformedText.length > originalText.length
+                  ? 'Expanded'
+                  : transformedText.length < originalText.length
+                    ? 'Condensed'
+                    : 'Same Length'}
               </div>
             </div>
             <div>
               <div className="text-muted-foreground">Word Count</div>
               <div className="font-medium">
-                {originalText.split(/\s+/).length} → {transformedText.split(/\s+/).length}
+                {originalText.split(/\s+/).length} →{' '}
+                {transformedText.split(/\s+/).length}
               </div>
             </div>
             <div>
               <div className="text-muted-foreground">Transformation</div>
-              <div className="font-medium">{getTransformLabel(transformType)}</div>
+              <div className="font-medium">
+                {getTransformLabel(transformType)}
+              </div>
             </div>
             <div>
               <div className="text-muted-foreground">Format</div>

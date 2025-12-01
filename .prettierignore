@@ -1,0 +1,24 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.*
+.yarn
+
+# Build outputs
+.next
+out
+build
+dist
+coverage
+
+# Test outputs
+test-results
+playwright-report
+.playwright
+
+# Misc
+*.tsbuildinfo
+.env*
+.vercel
+*.log
+.DS_Store

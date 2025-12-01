@@ -1,43 +1,52 @@
-"use client";
+'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Zap, Sparkles, FileText, Download, Clock } from "lucide-react";
+import { Zap, Sparkles, FileText, Download, Clock } from 'lucide-react';
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 
 export default function AboutPage() {
   const features = [
     {
       icon: <Zap className="h-5 w-5" />,
-      title: "AI-Powered Transformation",
-      description: "Leverage OpenAI's GPT-4o model to intelligently transform your text into multiple formats."
+      title: 'AI-Powered Transformation',
+      description:
+        "Leverage OpenAI's GPT-4o model to intelligently transform your text into multiple formats.",
     },
     {
       icon: <FileText className="h-5 w-5" />,
-      title: "Multiple Output Formats", 
-      description: "Convert text to Markdown, Corporate Brief, or Google Docs HTML with specialized prompts."
+      title: 'Multiple Output Formats',
+      description:
+        'Convert text to Markdown, Corporate Brief, or Google Docs HTML with specialized prompts.',
     },
     {
       icon: <Download className="h-5 w-5" />,
-      title: "Easy Export",
-      description: "Copy transformed text directly to your clipboard with one click, including HTML formatting."
+      title: 'Easy Export',
+      description:
+        'Copy transformed text directly to your clipboard with one click, including HTML formatting.',
     },
     {
       icon: <Clock className="h-5 w-5" />,
-      title: "Real-time Processing",
-      description: "Get instant results with loading states and error handling for a smooth experience."
-    }
+      title: 'Real-time Processing',
+      description:
+        'Get instant results with loading states and error handling for a smooth experience.',
+    },
   ];
-
 
   return (
     <section className="w-full max-w-4xl mx-auto space-y-8">
       <div className="text-center space-y-4">
-        <h1 className="text-4xl font-bold tracking-tight">
-          About Textify
-        </h1>
+        <h1 className="text-4xl font-bold tracking-tight">About Textify</h1>
         <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          A modern AI-powered text transformation tool that helps you convert and format your content 
-          for different use cases with intelligent preprocessing and multiple output formats.
+          A modern AI-powered text transformation tool that helps you convert
+          and format your content for different use cases with intelligent
+          preprocessing and multiple output formats.
         </p>
       </div>
 
@@ -72,7 +81,8 @@ export default function AboutPage() {
             How It Works
           </CardTitle>
           <CardDescription>
-            Textify uses advanced AI to understand context and apply specialized formatting
+            Textify uses advanced AI to understand context and apply specialized
+            formatting
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
