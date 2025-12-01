@@ -6,7 +6,11 @@ import { useTheme } from './ThemeProvider';
 import { Button } from './ui/button';
 
 export default function ThemeToggle() {
-  const { theme, toggleTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
+
+  const toggleTheme = () => {
+    setTheme(theme === 'dark' ? 'light' : 'dark');
+  };
 
   return (
     <Button
