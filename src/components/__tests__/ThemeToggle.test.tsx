@@ -15,8 +15,7 @@ describe('ThemeToggle Component', () => {
     vi.spyOn(ThemeProvider, 'useTheme').mockReturnValue({
       theme: 'light',
       setTheme: vi.fn(),
-      toggleTheme: vi.fn(),
-    });
+    } as any);
 
     render(<ThemeToggle />);
 
@@ -35,8 +34,7 @@ describe('ThemeToggle Component', () => {
     vi.spyOn(ThemeProvider, 'useTheme').mockReturnValue({
       theme: 'dark',
       setTheme: vi.fn(),
-      toggleTheme: vi.fn(),
-    });
+    } as any);
 
     render(<ThemeToggle />);
 
@@ -50,15 +48,14 @@ describe('ThemeToggle Component', () => {
     expect(sunIcon).toBeInTheDocument();
   });
 
-  it('should call toggleTheme when clicked', () => {
-    const mockToggleTheme = vi.fn();
+  it('should call setTheme when clicked', () => {
+    const mockSetTheme = vi.fn();
 
-    // Mock theme with toggle function
+    // Mock theme with setTheme function
     vi.spyOn(ThemeProvider, 'useTheme').mockReturnValue({
       theme: 'light',
-      setTheme: vi.fn(),
-      toggleTheme: mockToggleTheme,
-    });
+      setTheme: mockSetTheme,
+    } as any);
 
     render(<ThemeToggle />);
 
@@ -67,15 +64,15 @@ describe('ThemeToggle Component', () => {
     });
     fireEvent.click(button);
 
-    expect(mockToggleTheme).toHaveBeenCalledTimes(1);
+    expect(mockSetTheme).toHaveBeenCalledTimes(1);
+    expect(mockSetTheme).toHaveBeenCalledWith('dark');
   });
 
   it('should have proper accessibility attributes', () => {
     vi.spyOn(ThemeProvider, 'useTheme').mockReturnValue({
       theme: 'light',
       setTheme: vi.fn(),
-      toggleTheme: vi.fn(),
-    });
+    } as any);
 
     render(<ThemeToggle />);
 
@@ -94,8 +91,7 @@ describe('ThemeToggle Component', () => {
     vi.spyOn(ThemeProvider, 'useTheme').mockReturnValue({
       theme: 'light',
       setTheme: vi.fn(),
-      toggleTheme: vi.fn(),
-    });
+    } as any);
 
     rerender(<ThemeToggle />);
     let button = screen.getByRole('button', {
@@ -107,8 +103,7 @@ describe('ThemeToggle Component', () => {
     vi.spyOn(ThemeProvider, 'useTheme').mockReturnValue({
       theme: 'dark',
       setTheme: vi.fn(),
-      toggleTheme: vi.fn(),
-    });
+    } as any);
 
     rerender(<ThemeToggle />);
     button = screen.getByRole('button', { name: /toggle dark\/light mode/i });
